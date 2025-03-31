@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
 
@@ -9,11 +8,11 @@ const WorldMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Učitaj SVG mapu bez teksta direktno u komponentu
+    // Load SVG map without text directly into the component
     fetch('https://raw.githubusercontent.com/mledoze/countries/master/data/world.svg')
       .then(response => response.text())
       .then(svgContent => {
-        // Ukloni eventualne tekstualne elemente iz SVG-a
+        // Remove any text elements from the SVG
         const parser = new DOMParser();
         const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
         const textElements = svgDoc.querySelectorAll('text');
@@ -21,17 +20,17 @@ const WorldMap: React.FC = () => {
         
         mapContainerRef.current.innerHTML = new XMLSerializer().serializeToString(svgDoc);
         
-        // Dodaj event listener-e na putanje država
+        // Add event listeners to country paths
         const countryPaths = mapContainerRef.current.querySelectorAll('path');
         countryPaths.forEach(path => {
           const countryId = path.getAttribute('id');
           if (!countryId) return;
           
-          // Pronađi odgovarajuće ime države iz data-name atributa ili drugog izvora
+          // Find the corresponding country name from the data-name attribute or other source
           const countryName = getCountryNameFromId(countryId);
           if (!countryName) return;
           
-          // Postavi data-name atribut za later reference
+          // Set data-name attribute for later reference
           path.setAttribute('data-name', countryName);
           
           path.addEventListener('mouseenter', () => {
@@ -50,8 +49,8 @@ const WorldMap: React.FC = () => {
         });
       })
       .catch(error => {
-        console.error("Greška pri učitavanju mape:", error);
-        // Fallback na drugi izvor mape ako prvi ne uspe
+        console.error("Error loading map:", error);
+        // Fallback to another map source if the first one fails
         fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
           .then(response => response.json())
           .then(worldData => {
@@ -60,7 +59,7 @@ const WorldMap: React.FC = () => {
             svg.setAttribute('width', '100%');
             svg.setAttribute('height', '100%');
             
-            // Kreiraj putanje za svaku državu
+            // Create paths for each country
             worldData.features.forEach(feature => {
               const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               path.setAttribute('d', feature.geometry);
@@ -77,11 +76,11 @@ const WorldMap: React.FC = () => {
               mapContainerRef.current.appendChild(svg);
             }
           })
-          .catch(secondError => console.error("Fallback mapa nije učitana:", secondError));
+          .catch(secondError => console.error("Fallback map failed to load:", secondError));
       });
     
     return () => {
-      // Očisti event listener-e
+      // Clean up event listeners
       const countryPaths = mapContainerRef.current?.querySelectorAll('path');
       if (countryPaths) {
         countryPaths.forEach(path => {
@@ -96,7 +95,7 @@ const WorldMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Resetuj sve države na podrazumevano
+    // Reset all countries to default
     const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
     countryPaths.forEach(path => {
       path.classList.remove('player-country', 'computer-country', 'highlighted');
@@ -104,7 +103,7 @@ const WorldMap: React.FC = () => {
       path.setAttribute('stroke', '#ffffff');
     });
     
-    // Označi države igrača
+    // Mark player countries
     gameState.playerHistory.forEach(country => {
       const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
       if (path) {
@@ -113,7 +112,7 @@ const WorldMap: React.FC = () => {
       }
     });
     
-    // Označi države računara
+    // Mark computer countries
     gameState.computerHistory.forEach(country => {
       const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
       if (path) {
@@ -122,7 +121,7 @@ const WorldMap: React.FC = () => {
       }
     });
     
-    // Označi trenutno označenu državu
+    // Mark the currently highlighted country
     if (gameState.highlightedCountry) {
       const path = mapContainerRef.current.querySelector(`path[data-name="${gameState.highlightedCountry}"]`);
       if (path) {
@@ -134,11 +133,11 @@ const WorldMap: React.FC = () => {
     
   }, [gameState.playerHistory, gameState.computerHistory, gameState.highlightedCountry]);
 
-  // Helper funkcija za konverziju id-a države u ime
+  // Helper function to convert country id to name
   function getCountryNameFromId(id: string): string | null {
     const countryMappings: {[key: string]: string} = {
-      // Osnovni set mapiranja ID-eva na imena država 
-      // Ovde će biti manji set država za primer, biće dopunjen po potrebi
+      // Basic set of country ID to name mapping
+      // This is a smaller set of countries for example, will be expanded as needed
       "RUS": "Rusija",
       "USA": "Sjedinjene Američke Države",
       "CAN": "Kanada",
@@ -157,7 +156,7 @@ const WorldMap: React.FC = () => {
       "MNE": "Crna Gora",
       "MKD": "Severna Makedonija",
       "ALB": "Albanija"
-      // Ostatak mapiranja će biti dopunjen po potrebi
+      // Rest of the mapping will be added as needed
     };
     
     return countryMappings[id] || null;
@@ -166,27 +165,7 @@ const WorldMap: React.FC = () => {
   return (
     <div className="map-container w-full h-[65vh] max-h-[800px] border rounded-lg shadow-lg overflow-hidden bg-white">
       <div ref={mapContainerRef} className="w-full h-full relative">
-        {/* Ovde će biti ubačena SVG mapa */}
-        <style jsx>{`
-          path {
-            transition: fill 0.3s ease, stroke 0.3s ease;
-          }
-          .player-country {
-            fill: #3b82f6;
-          }
-          .computer-country {
-            fill: #ef4444;
-          }
-          .highlighted {
-            stroke: #10b981 !important;
-            stroke-width: 2px;
-          }
-          path.hover {
-            stroke: #10b981;
-            stroke-width: 1.5px;
-            cursor: pointer;
-          }
-        `}</style>
+        {/* The SVG map will be inserted here */}
       </div>
     </div>
   );
