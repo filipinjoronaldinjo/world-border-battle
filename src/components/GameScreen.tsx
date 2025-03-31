@@ -14,9 +14,8 @@ const GameScreen: React.FC = () => {
   const [playerTurn, setPlayerTurn] = useState(true);
   const [computerThinking, setComputerThinking] = useState(false);
 
-  // Računarska logika zasnovana na težini igre
+  // Computer logic based on difficulty
   const calculateComputerMove = () => {
-    // Ako nema trenutne države, ne možemo da napravimo potez
     if (!gameState.currentCountry || !countryData[gameState.currentCountry]) {
       return null;
     }
@@ -26,20 +25,18 @@ const GameScreen: React.FC = () => {
       neighbor => !gameState.usedCountries.includes(neighbor) && countryData[neighbor]
     );
     
-    // Ako nema dostupnih suseda, računar je izgubio
     if (availableNeighbors.length === 0) {
       return null;
     }
     
-    // Za lak nivo - nasumično bira
+    // Easy level - random choice
     if (gameState.difficulty === 'lako') {
       const randomIndex = Math.floor(Math.random() * availableNeighbors.length);
       return availableNeighbors[randomIndex];
     }
     
-    // Za srednji nivo - preferira države koje će dovesti igrača u ćorsokak
+    // Medium level - prefers moves that lead player to dead end
     if (gameState.difficulty === 'srednje') {
-      // Prvo traži potez koji će dovesti igrača u ćorsokak
       for (const neighbor of availableNeighbors) {
         const neighborBorders = countryData[neighbor].borders;
         const availableBorders = neighborBorders.filter(
@@ -47,18 +44,17 @@ const GameScreen: React.FC = () => {
         );
         
         if (availableBorders.length === 0) {
-          return neighbor; // Našli smo ćorsokak za igrača
+          return neighbor; // Found dead end for player
         }
       }
       
-      // Ako nema ćorsokaka, biramo nasumično
       const randomIndex = Math.floor(Math.random() * availableNeighbors.length);
       return availableNeighbors[randomIndex];
     }
     
-    // Za težak nivo - koristi naprednu strategiju
+    // Hard level - uses advanced strategy
     if (gameState.difficulty === 'teško') {
-      // Prvo traži potez koji vodi direktno do pobede
+      // Look for moves that lead directly to victory
       for (const neighbor of availableNeighbors) {
         const neighborBorders = countryData[neighbor].borders;
         const availableBorders = neighborBorders.filter(
@@ -66,11 +62,11 @@ const GameScreen: React.FC = () => {
         );
         
         if (availableBorders.length === 0) {
-          return neighbor; // Direktna pobeda
+          return neighbor; // Direct win
         }
       }
       
-      // Zatim traži potez koji nudi najmanje opcija igraču
+      // Look for moves that give player fewest options
       let bestMove = null;
       let minOptions = Infinity;
       
@@ -80,7 +76,7 @@ const GameScreen: React.FC = () => {
           border => !gameState.usedCountries.includes(border) && border !== neighbor
         );
         
-        // Proveravamo da li igrač može da pobedi sa bilo kojim potezom
+        // Check if player can win with any move
         const playerCanWin = availableBorders.some(border => {
           const borderBorders = countryData[border]?.borders || [];
           return borderBorders.every(b => 
@@ -88,14 +84,14 @@ const GameScreen: React.FC = () => {
           );
         });
         
-        // Ako igrač ne može da pobedi i imamo manje opcija nego pre
+        // If player cannot win and we have fewer options than before
         if (!playerCanWin && availableBorders.length < minOptions) {
           minOptions = availableBorders.length;
           bestMove = neighbor;
         }
       }
       
-      // Ako nismo našli dobar potez, biramo opciju sa najmanje mogućnosti
+      // If no good move found, choose option with fewest possibilities
       if (!bestMove) {
         bestMove = availableNeighbors.reduce((best, current) => {
           const currentOptions = countryData[current].borders.filter(
@@ -110,7 +106,7 @@ const GameScreen: React.FC = () => {
         }, null as string | null);
       }
       
-      // Ako i dalje nemamo potez, biramo nasumično
+      // If still no move, choose random
       if (!bestMove && availableNeighbors.length > 0) {
         const randomIndex = Math.floor(Math.random() * availableNeighbors.length);
         bestMove = availableNeighbors[randomIndex];
@@ -119,14 +115,14 @@ const GameScreen: React.FC = () => {
       return bestMove;
     }
     
-    // Podrazumevani potez ako ništa drugo ne prođe
+    // Default move if nothing else passes
     const randomIndex = Math.floor(Math.random() * availableNeighbors.length);
     return availableNeighbors[randomIndex];
   };
 
-  // Obrada poteza igrača
+  // Handle player move
   const handlePlayerMove = (country: string) => {
-    if (!playerTurn) return; // Ignoriši potez ako nije igrač na potezu
+    if (!playerTurn) return; // Ignore move if not player's turn
     
     const moveSuccess = makePlayerMove(country);
     
@@ -134,19 +130,28 @@ const GameScreen: React.FC = () => {
       setPlayerTurn(false);
       
       if (!gameState.isGameOver) {
-        // Dodaj kašnjenje za potez računara da bi izgledalo prirodnije
+        // Add delay for computer move to feel more natural
         setComputerThinking(true);
         setTimeout(() => {
           const computerCountry = calculateComputerMove();
           makeComputerMove(computerCountry);
           setPlayerTurn(true);
           setComputerThinking(false);
+          
+          // Show toast notification for computer's move
+          if (computerCountry) {
+            toast({
+              title: "Računar je odigrao",
+              description: `Računar je izabrao državu: ${computerCountry}`,
+              duration: 3000
+            });
+          }
         }, 1500);
       }
     }
   };
 
-  // Prikaži obaveštenje za prvi potez
+  // Show notification for first move
   useEffect(() => {
     if (gameState.isGameStarted && gameState.playerHistory.length === 0) {
       toast({

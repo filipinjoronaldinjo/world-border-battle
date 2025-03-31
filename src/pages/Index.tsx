@@ -8,12 +8,23 @@ import EndScreen from '@/components/EndScreen';
 const GameContainer: React.FC = () => {
   const { gameState } = useGame();
 
-  // Preload SVG mapa
+  // Preload SVG map
   useEffect(() => {
-    fetch('/src/assets/world-map.svg')
-      .catch(error => {
+    const preloadMap = async () => {
+      try {
+        const response = await fetch('/src/assets/world-map.svg');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        // We don't need to do anything with the response, just preload it
+        await response.text();
+        console.log("Map preloaded successfully");
+      } catch (error) {
         console.error("Failed to preload map:", error);
-      });
+      }
+    };
+    
+    preloadMap();
   }, []);
 
   if (gameState.isGameOver) {

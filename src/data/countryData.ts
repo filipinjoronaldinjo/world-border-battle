@@ -1,11 +1,107 @@
-
 export interface CountryData {
   name: string;
   borders: string[];
 }
 
-// This will be our data source - it mimics the format from DrzaveLista.txt
+// We'll add North and South American countries to our data
 export const countryData: { [key: string]: CountryData } = {
+  // North America
+  "Kanada": {
+    name: "Kanada",
+    borders: ["Sjedinjene Američke Države"]
+  },
+  "Sjedinjene Američke Države": {
+    name: "Sjedinjene Američke Države",
+    borders: ["Kanada", "Meksiko"]
+  },
+  "Meksiko": {
+    name: "Meksiko",
+    borders: ["Sjedinjene Američke Države", "Gvatemala", "Belize"]
+  },
+  "Gvatemala": {
+    name: "Gvatemala",
+    borders: ["Meksiko", "Belize", "Honduras", "Salvador"]
+  },
+  "Belize": {
+    name: "Belize",
+    borders: ["Meksiko", "Gvatemala"]
+  },
+  "Salvador": {
+    name: "Salvador",
+    borders: ["Gvatemala", "Honduras"]
+  },
+  "Honduras": {
+    name: "Honduras",
+    borders: ["Gvatemala", "Salvador", "Nikaragva"]
+  },
+  "Nikaragva": {
+    name: "Nikaragva",
+    borders: ["Honduras", "Kostarika"]
+  },
+  "Kostarika": {
+    name: "Kostarika",
+    borders: ["Nikaragva", "Panama"]
+  },
+  "Panama": {
+    name: "Panama",
+    borders: ["Kostarika", "Kolumbija"]
+  },
+  
+  // South America
+  "Kolumbija": {
+    name: "Kolumbija",
+    borders: ["Panama", "Venecuela", "Brazil", "Peru", "Ekvador"]
+  },
+  "Venecuela": {
+    name: "Venecuela",
+    borders: ["Kolumbija", "Brazil", "Gvajana"]
+  },
+  "Gvajana": {
+    name: "Gvajana",
+    borders: ["Venecuela", "Brazil", "Surinam"]
+  },
+  "Surinam": {
+    name: "Surinam",
+    borders: ["Gvajana", "Brazil", "Francuska Gvajana"]
+  },
+  "Francuska Gvajana": {
+    name: "Francuska Gvajana",
+    borders: ["Surinam", "Brazil"]
+  },
+  "Brazil": {
+    name: "Brazil",
+    borders: ["Francuska Gvajana", "Surinam", "Gvajana", "Venecuela", "Kolumbija", "Peru", "Bolivija", "Paragvaj", "Argentina", "Urugvaj"]
+  },
+  "Ekvador": {
+    name: "Ekvador",
+    borders: ["Kolumbija", "Peru"]
+  },
+  "Peru": {
+    name: "Peru",
+    borders: ["Ekvador", "Kolumbija", "Brazil", "Bolivija", "Čile"]
+  },
+  "Bolivija": {
+    name: "Bolivija",
+    borders: ["Peru", "Brazil", "Paragvaj", "Argentina", "Čile"]
+  },
+  "Paragvaj": {
+    name: "Paragvaj",
+    borders: ["Bolivija", "Brazil", "Argentina"]
+  },
+  "Urugvaj": {
+    name: "Urugvaj",
+    borders: ["Brazil", "Argentina"]
+  },
+  "Argentina": {
+    name: "Argentina",
+    borders: ["Čile", "Bolivija", "Paragvaj", "Brazil", "Urugvaj"]
+  },
+  "Čile": {
+    name: "Čile",
+    borders: ["Peru", "Bolivija", "Argentina"]
+  },
+  
+  // Europe and the rest of the existing countries...
   "Srbija": {
     name: "Srbija",
     borders: ["Mađarska", "Rumunija", "Bugarska", "Severna Makedonija", "Crna Gora", "Bosna i Hercegovina", "Hrvatska"]

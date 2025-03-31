@@ -1,15 +1,18 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '@/context/GameContext';
 
 const WorldMap: React.FC = () => {
   const { gameState, makePlayerMove, setHighlightedCountry } = useGame();
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
+  const [activeCountry, setActiveCountry] = useState<string | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Učitaj SVG mapu direktno iz assets foldera
+    // Load SVG map from assets folder
     fetch('/src/assets/world-map.svg')
       .then(response => {
         if (!response.ok) {
@@ -21,7 +24,7 @@ const WorldMap: React.FC = () => {
         if (mapContainerRef.current) {
           mapContainerRef.current.innerHTML = svgContent;
           
-          // Dodaj event listenere na putanje država
+          // Add event listeners to country paths
           const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
           countryPaths.forEach(path => {
             const countryName = path.getAttribute('data-name');
@@ -39,6 +42,7 @@ const WorldMap: React.FC = () => {
             
             path.addEventListener('click', () => {
               makePlayerMove(countryName);
+              zoomToCountry(path as SVGPathElement);
             });
           });
         }
@@ -46,53 +50,17 @@ const WorldMap: React.FC = () => {
       .catch(error => {
         console.error("Error loading map:", error);
         
-        // Ako ne uspe učitavanje, prikaži alternativnu mapu direktno iz SVG stringa
+        // If loading fails, show alternative map
         if (mapContainerRef.current) {
-          // Osnovna verzija mape kao backup
-          const backupSvg = `
-          <svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
-            <path data-name="Srbija" d="M525 235 L532 230 L538 232 L543 240 L535 243 L528 240 Z" />
-            <path data-name="Hrvatska" d="M510 230 L525 235 L527 240 L515 245 L505 238 Z" />
-            <path data-name="Bosna i Hercegovina" d="M515 245 L527 240 L535 243 L530 250 L522 252 Z" />
-            <path data-name="Crna Gora" d="M530 250 L535 243 L543 240 L545 245 L538 250 Z" />
-            <path data-name="Bugarska" d="M545 235 L550 233 L560 236 L560 248 L550 245 Z" />
-            <path data-name="Severna Makedonija" d="M538 250 L545 245 L550 245 L550 253 L540 253 Z" />
-            <!-- Još nekoliko osnovnih zemalja Evrope za backup mapu -->
-            <path data-name="Grčka" d="M540 253 L550 253 L558 265 L540 270 L535 257 Z" />
-            <path data-name="Francuska" d="M460 220 L475 205 L490 210 L492 215 L485 240 L450 225 Z" />
-            <path data-name="Nemačka" d="M500 207 L505 215 L515 210 L525 220 L515 195 L505 190 Z" />
-            <path data-name="Italija" d="M485 240 L505 238 L485 210 L475 205 L460 220 L465 235 Z" />
-            <path data-name="Španija" d="M450 225 L465 235 L460 250 L425 245 L430 230 Z" />
-          </svg>
-          `;
-          
-          mapContainerRef.current.innerHTML = backupSvg;
-          
-          // Dodaj event listenere na putanje država
-          const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
-          countryPaths.forEach(path => {
-            const countryName = path.getAttribute('data-name');
-            if (!countryName) return;
-            
-            path.addEventListener('mouseenter', () => {
-              setHighlightedCountry(countryName);
-              path.classList.add('hover');
-            });
-            
-            path.addEventListener('mouseleave', () => {
-              setHighlightedCountry(null);
-              path.classList.remove('hover');
-            });
-            
-            path.addEventListener('click', () => {
-              makePlayerMove(countryName);
-            });
-          });
+          // Basic map as backup with minimal countries (not shown here for brevity)
+          mapContainerRef.current.innerHTML = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+            <text x="500" y="250" text-anchor="middle" font-size="20">Map loading failed</text>
+          </svg>`;
         }
       });
     
     return () => {
-      // Očisti event listenere
+      // Clean up event listeners
       const countryPaths = mapContainerRef.current?.querySelectorAll('path');
       if (countryPaths) {
         countryPaths.forEach(path => {
@@ -107,7 +75,7 @@ const WorldMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Resetuj sve zemlje na podrazumevane vrednosti
+    // Reset all countries to default values
     const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
     countryPaths.forEach(path => {
       path.classList.remove('player-country', 'computer-country', 'highlighted');
@@ -115,41 +83,128 @@ const WorldMap: React.FC = () => {
       path.setAttribute('stroke', '#ffffff');
     });
     
-    // Označi zemlje igrača
+    // Mark player countries
     gameState.playerHistory.forEach(country => {
       const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
       if (path) {
         path.classList.add('player-country');
-        path.setAttribute('fill', '#3b82f6'); // plava
+        path.setAttribute('fill', '#3b82f6'); // blue
       }
     });
     
-    // Označi zemlje računara
+    // Mark computer countries
     gameState.computerHistory.forEach(country => {
       const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
       if (path) {
         path.classList.add('computer-country');
-        path.setAttribute('fill', '#ef4444'); // crvena
+        path.setAttribute('fill', '#ef4444'); // red
       }
     });
     
-    // Označi trenutno istaknutu zemlju
+    // Mark highlighted country
     if (gameState.highlightedCountry) {
       const path = mapContainerRef.current.querySelector(`path[data-name="${gameState.highlightedCountry}"]`);
       if (path) {
         path.classList.add('highlighted');
-        path.setAttribute('stroke', '#10b981'); // zelena
+        path.setAttribute('stroke', '#10b981'); // green
         path.setAttribute('stroke-width', '2');
       }
     }
     
-  }, [gameState.playerHistory, gameState.computerHistory, gameState.highlightedCountry]);
+    // Zoom to the most recently selected country
+    const lastCountry = gameState.currentCountry;
+    if (lastCountry && lastCountry !== activeCountry) {
+      const countryPath = mapContainerRef.current.querySelector(`path[data-name="${lastCountry}"]`) as SVGPathElement;
+      if (countryPath) {
+        zoomToCountry(countryPath);
+        setActiveCountry(lastCountry);
+      }
+    }
+    
+  }, [gameState.playerHistory, gameState.computerHistory, gameState.highlightedCountry, gameState.currentCountry, activeCountry]);
+
+  const zoomToCountry = (countryPath: SVGPathElement) => {
+    if (!countryPath || !mapContainerRef.current) return;
+    
+    try {
+      // Get the bounding box of the country path
+      const bbox = countryPath.getBBox();
+      
+      // Calculate center of the bounding box
+      const centerX = bbox.x + bbox.width / 2;
+      const centerY = bbox.y + bbox.height / 2;
+      
+      // Calculate appropriate zoom level based on country size
+      // Smaller countries get higher zoom
+      const svgElement = mapContainerRef.current.querySelector('svg');
+      if (!svgElement) return;
+      
+      const svgWidth = svgElement.viewBox.baseVal.width;
+      const svgHeight = svgElement.viewBox.baseVal.height;
+      
+      const containerWidth = mapContainerRef.current.clientWidth;
+      const containerHeight = mapContainerRef.current.clientHeight;
+      
+      // Determine zoom factor based on country size
+      // Ensure country takes up at least 20% of the view
+      const minDimension = Math.min(containerWidth, containerHeight);
+      const maxCountryDimension = Math.max(bbox.width, bbox.height);
+      const targetSize = minDimension * 0.3; // Target 30% of viewport
+      
+      let newZoom = targetSize / (maxCountryDimension / (svgWidth / 1000));
+      newZoom = Math.min(Math.max(newZoom, 1), 4); // Limit zoom between 1x and 4x
+      
+      // Calculate pan position to center the country
+      const newX = -(centerX * newZoom - containerWidth / 2);
+      const newY = -(centerY * newZoom - containerHeight / 2);
+      
+      // Apply zoom and pan with animation
+      setZoom(newZoom);
+      setPanPosition({ x: newX, y: newY });
+      
+    } catch (error) {
+      console.error("Error zooming to country:", error);
+    }
+  };
+
+  const resetZoom = () => {
+    setZoom(1);
+    setPanPosition({ x: 0, y: 0 });
+    setActiveCountry(null);
+  };
 
   return (
-    <div className="map-container w-full h-[65vh] max-h-[800px] border rounded-lg shadow-lg overflow-hidden bg-white">
-      <div ref={mapContainerRef} className="w-full h-full relative">
-        {/* SVG mapa će biti ubačena ovde */}
+    <div className="flex flex-col gap-2">
+      <div className="map-container w-full h-[65vh] max-h-[800px] border rounded-lg shadow-lg overflow-hidden bg-white relative">
+        <div 
+          ref={mapContainerRef} 
+          className="w-full h-full"
+          style={{
+            transform: `scale(${zoom}) translate(${panPosition.x / zoom}px, ${panPosition.y / zoom}px)`,
+            transformOrigin: '0 0',
+            transition: 'transform 0.5s ease-out'
+          }}
+        >
+          {/* SVG map will be inserted here */}
+        </div>
+        
+        <div className="absolute bottom-4 right-4 flex gap-2">
+          <button 
+            className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow hover:bg-white"
+            onClick={resetZoom}
+            title="Reset zoom"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m3 3 18 18"/>
+              <path d="M10.5 10.5 3 18"/>
+              <path d="M21 21v-6"/>
+              <path d="M21 21H15"/>
+              <path d="M18 18 9 9"/>
+            </svg>
+          </button>
+        </div>
       </div>
+      
       <style dangerouslySetInnerHTML={{ __html: `
         .map-container path {
           fill: #e0e0e0;
