@@ -7,6 +7,7 @@ import MoveHistory from './MoveHistory';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Flag, MapPin } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { countryData } from '@/data/countryData';
 
 const GameScreen: React.FC = () => {
   const { gameState, makePlayerMove, makeComputerMove, resetGame } = useGame();
