@@ -134,7 +134,13 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => input.length > 0 && setSuggestions(findSuggestions(input)).length > 0 && setShowDropdown(true)}
+          onFocus={() => {
+            if (input.length > 0) {
+              const matchedSuggestions = findSuggestions(input);
+              setSuggestions(matchedSuggestions);
+              setShowDropdown(matchedSuggestions.length > 0);
+            }
+          }}
           placeholder={gameState.currentCountry 
             ? `Nađi državu koja se graniči sa ${gameState.currentCountry}...` 
             : "Unesite ime države..."}

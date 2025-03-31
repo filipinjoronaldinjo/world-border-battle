@@ -21,7 +21,7 @@ interface GameContextType {
   startGame: (difficulty: DifficultyLevel) => void;
   resetGame: () => void;
   makePlayerMove: (country: string) => boolean;
-  makeComputerMove: () => void;
+  makeComputerMove: (country: string | null) => void;
   setHighlightedCountry: (country: string | null) => void;
   getAvailableCountries: (forCountry?: string) => string[];
 }
@@ -113,56 +113,17 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return true;
   };
 
-  const makeComputerMove = () => {
+  const makeComputerMove = (computerChoice: string | null) => {
     if (!gameState.currentCountry || gameState.isGameOver) return;
 
-    const currentCountry = gameState.currentCountry;
-    const availableCountries = countryData[currentCountry].borders.filter(
-      (country) => !gameState.usedCountries.includes(country)
-    );
-
-    if (availableCountries.length === 0) {
-      // Computer lost
+    // If computerChoice is null, computer has no valid moves and player wins
+    if (computerChoice === null) {
       setGameState({
         ...gameState,
         isGameOver: true,
         playerWon: true,
       });
       return;
-    }
-
-    let computerChoice: string;
-
-    if (gameState.difficulty === 'lako') {
-      // Easy: Random choice
-      const randomIndex = Math.floor(Math.random() * availableCountries.length);
-      computerChoice = availableCountries[randomIndex];
-    } 
-    else if (gameState.difficulty === 'srednje') {
-      // Medium: Try to find a country that has no more available borders
-      computerChoice = availableCountries.find(country => {
-        const nextAvailable = countryData[country].borders.filter(
-          c => !gameState.usedCountries.includes(c) && c !== country
-        );
-        return nextAvailable.length === 0;
-      }) || availableCountries[Math.floor(Math.random() * availableCountries.length)];
-    } 
-    else {
-      // Hard: Find country with minimum options for player
-      let minOptions = Number.MAX_SAFE_INTEGER;
-      let bestCountry = availableCountries[0];
-
-      for (const country of availableCountries) {
-        const nextOptions = countryData[country].borders.filter(
-          c => !gameState.usedCountries.includes(c) && c !== country
-        ).length;
-
-        if (nextOptions < minOptions) {
-          minOptions = nextOptions;
-          bestCountry = country;
-        }
-      }
-      computerChoice = bestCountry;
     }
 
     const newUsedCountries = [...gameState.usedCountries, computerChoice];
