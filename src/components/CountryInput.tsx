@@ -146,6 +146,7 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
             : "Unesite ime države..."}
           className="py-6 text-lg"
           disabled={gameState.isGameOver}
+          autoComplete="off"
         />
         
         <Button 
@@ -166,7 +167,9 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
             {suggestions.map((suggestion, index) => (
               <li 
                 key={suggestion}
-                className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${index === selectedIndex ? 'bg-blue-50 text-primary-foreground' : ''}`}
+                className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
+                  index === selectedIndex ? 'bg-blue-50 text-primary' : ''
+                }`}
                 onClick={() => selectSuggestion(suggestion)}
                 onMouseEnter={() => setSelectedIndex(index)}
               >

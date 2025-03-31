@@ -107,7 +107,7 @@ const GameScreen: React.FC = () => {
           ).length : Infinity;
           
           return currentOptions < bestOptions ? current : best;
-        }, null);
+        }, null as string | null);
       }
       
       // Ako i dalje nemamo potez, biramo nasumično
@@ -126,6 +126,8 @@ const GameScreen: React.FC = () => {
 
   // Obrada poteza igrača
   const handlePlayerMove = (country: string) => {
+    if (!playerTurn) return; // Ignoriši potez ako nije igrač na potezu
+    
     const moveSuccess = makePlayerMove(country);
     
     if (moveSuccess) {
@@ -136,14 +138,7 @@ const GameScreen: React.FC = () => {
         setComputerThinking(true);
         setTimeout(() => {
           const computerCountry = calculateComputerMove();
-          
-          if (computerCountry) {
-            makeComputerMove(computerCountry);
-          } else {
-            // Ako računar ne može da nađe potez, igrač je pobedio
-            makeComputerMove(null);
-          }
-          
+          makeComputerMove(computerCountry);
           setPlayerTurn(true);
           setComputerThinking(false);
         }, 1500);
@@ -234,15 +229,15 @@ const GameScreen: React.FC = () => {
             <h3 className="font-medium mb-2">Legenda:</h3>
             <div className="space-y-2">
               <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-game-blue mr-2"></div>
+                <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
                 <span>Vaše države</span>
               </div>
               <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-game-red mr-2"></div>
+                <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
                 <span>Države računara</span>
               </div>
               <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-game-green mr-2"></div>
+                <div className="w-4 h-4 rounded-full bg-emerald-500 mr-2"></div>
                 <span>Označena država</span>
               </div>
             </div>
