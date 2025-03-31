@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
 
@@ -8,79 +9,90 @@ const WorldMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Load SVG map without text directly into the component
-    fetch('https://raw.githubusercontent.com/mledoze/countries/master/data/world.svg')
-      .then(response => response.text())
+    // Učitaj SVG mapu direktno iz assets foldera
+    fetch('/src/assets/world-map.svg')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+      })
       .then(svgContent => {
-        // Remove any text elements from the SVG
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
-        const textElements = svgDoc.querySelectorAll('text');
-        textElements.forEach(text => text.remove());
-        
-        mapContainerRef.current.innerHTML = new XMLSerializer().serializeToString(svgDoc);
-        
-        // Add event listeners to country paths
-        const countryPaths = mapContainerRef.current.querySelectorAll('path');
-        countryPaths.forEach(path => {
-          const countryId = path.getAttribute('id');
-          if (!countryId) return;
+        if (mapContainerRef.current) {
+          mapContainerRef.current.innerHTML = svgContent;
           
-          // Find the corresponding country name from the data-name attribute or other source
-          const countryName = getCountryNameFromId(countryId);
-          if (!countryName) return;
-          
-          // Set data-name attribute for later reference
-          path.setAttribute('data-name', countryName);
-          
-          path.addEventListener('mouseenter', () => {
-            setHighlightedCountry(countryName);
-            path.classList.add('hover');
+          // Dodaj event listenere na putanje država
+          const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
+          countryPaths.forEach(path => {
+            const countryName = path.getAttribute('data-name');
+            if (!countryName) return;
+            
+            path.addEventListener('mouseenter', () => {
+              setHighlightedCountry(countryName);
+              path.classList.add('hover');
+            });
+            
+            path.addEventListener('mouseleave', () => {
+              setHighlightedCountry(null);
+              path.classList.remove('hover');
+            });
+            
+            path.addEventListener('click', () => {
+              makePlayerMove(countryName);
+            });
           });
-          
-          path.addEventListener('mouseleave', () => {
-            setHighlightedCountry(null);
-            path.classList.remove('hover');
-          });
-          
-          path.addEventListener('click', () => {
-            makePlayerMove(countryName);
-          });
-        });
+        }
       })
       .catch(error => {
         console.error("Error loading map:", error);
-        // Fallback to another map source if the first one fails
-        fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
-          .then(response => response.json())
-          .then(worldData => {
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('viewBox', '0 0 960 500');
-            svg.setAttribute('width', '100%');
-            svg.setAttribute('height', '100%');
+        
+        // Ako ne uspe učitavanje, prikaži alternativnu mapu direktno iz SVG stringa
+        if (mapContainerRef.current) {
+          // Osnovna verzija mape kao backup
+          const backupSvg = `
+          <svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+            <path data-name="Srbija" d="M525 235 L532 230 L538 232 L543 240 L535 243 L528 240 Z" />
+            <path data-name="Hrvatska" d="M510 230 L525 235 L527 240 L515 245 L505 238 Z" />
+            <path data-name="Bosna i Hercegovina" d="M515 245 L527 240 L535 243 L530 250 L522 252 Z" />
+            <path data-name="Crna Gora" d="M530 250 L535 243 L543 240 L545 245 L538 250 Z" />
+            <path data-name="Bugarska" d="M545 235 L550 233 L560 236 L560 248 L550 245 Z" />
+            <path data-name="Severna Makedonija" d="M538 250 L545 245 L550 245 L550 253 L540 253 Z" />
+            <!-- Još nekoliko osnovnih zemalja Evrope za backup mapu -->
+            <path data-name="Grčka" d="M540 253 L550 253 L558 265 L540 270 L535 257 Z" />
+            <path data-name="Francuska" d="M460 220 L475 205 L490 210 L492 215 L485 240 L450 225 Z" />
+            <path data-name="Nemačka" d="M500 207 L505 215 L515 210 L525 220 L515 195 L505 190 Z" />
+            <path data-name="Italija" d="M485 240 L505 238 L485 210 L475 205 L460 220 L465 235 Z" />
+            <path data-name="Španija" d="M450 225 L465 235 L460 250 L425 245 L430 230 Z" />
+          </svg>
+          `;
+          
+          mapContainerRef.current.innerHTML = backupSvg;
+          
+          // Dodaj event listenere na putanje država
+          const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
+          countryPaths.forEach(path => {
+            const countryName = path.getAttribute('data-name');
+            if (!countryName) return;
             
-            // Create paths for each country
-            worldData.features.forEach(feature => {
-              const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-              path.setAttribute('d', feature.geometry);
-              path.setAttribute('data-name', feature.properties.name);
-              path.setAttribute('fill', '#e0e0e0');
-              path.setAttribute('stroke', '#ffffff');
-              path.setAttribute('stroke-width', '0.5');
-              
-              svg.appendChild(path);
+            path.addEventListener('mouseenter', () => {
+              setHighlightedCountry(countryName);
+              path.classList.add('hover');
             });
             
-            if (mapContainerRef.current) {
-              mapContainerRef.current.innerHTML = '';
-              mapContainerRef.current.appendChild(svg);
-            }
-          })
-          .catch(secondError => console.error("Fallback map failed to load:", secondError));
+            path.addEventListener('mouseleave', () => {
+              setHighlightedCountry(null);
+              path.classList.remove('hover');
+            });
+            
+            path.addEventListener('click', () => {
+              makePlayerMove(countryName);
+            });
+          });
+        }
       });
     
     return () => {
-      // Clean up event listeners
+      // Očisti event listenere
       const countryPaths = mapContainerRef.current?.querySelectorAll('path');
       if (countryPaths) {
         countryPaths.forEach(path => {
@@ -95,7 +107,7 @@ const WorldMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Reset all countries to default
+    // Resetuj sve zemlje na podrazumevane vrednosti
     const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
     countryPaths.forEach(path => {
       path.classList.remove('player-country', 'computer-country', 'highlighted');
@@ -103,70 +115,72 @@ const WorldMap: React.FC = () => {
       path.setAttribute('stroke', '#ffffff');
     });
     
-    // Mark player countries
+    // Označi zemlje igrača
     gameState.playerHistory.forEach(country => {
       const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
       if (path) {
         path.classList.add('player-country');
-        path.setAttribute('fill', '#3b82f6'); // blue
+        path.setAttribute('fill', '#3b82f6'); // plava
       }
     });
     
-    // Mark computer countries
+    // Označi zemlje računara
     gameState.computerHistory.forEach(country => {
       const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
       if (path) {
         path.classList.add('computer-country');
-        path.setAttribute('fill', '#ef4444'); // red
+        path.setAttribute('fill', '#ef4444'); // crvena
       }
     });
     
-    // Mark the currently highlighted country
+    // Označi trenutno istaknutu zemlju
     if (gameState.highlightedCountry) {
       const path = mapContainerRef.current.querySelector(`path[data-name="${gameState.highlightedCountry}"]`);
       if (path) {
         path.classList.add('highlighted');
-        path.setAttribute('stroke', '#10b981'); // green
+        path.setAttribute('stroke', '#10b981'); // zelena
         path.setAttribute('stroke-width', '2');
       }
     }
     
   }, [gameState.playerHistory, gameState.computerHistory, gameState.highlightedCountry]);
 
-  // Helper function to convert country id to name
-  function getCountryNameFromId(id: string): string | null {
-    const countryMappings: {[key: string]: string} = {
-      // Basic set of country ID to name mapping
-      // This is a smaller set of countries for example, will be expanded as needed
-      "RUS": "Rusija",
-      "USA": "Sjedinjene Američke Države",
-      "CAN": "Kanada",
-      "BRA": "Brazil",
-      "CHN": "Kina",
-      "IND": "Indija",
-      "AUS": "Australija",
-      "FRA": "Francuska",
-      "DEU": "Nemačka",
-      "GBR": "Ujedinjeno Kraljevstvo",
-      "ITA": "Italija",
-      "JPN": "Japan",
-      "SRB": "Srbija",
-      "HRV": "Hrvatska",
-      "BIH": "Bosna i Hercegovina",
-      "MNE": "Crna Gora",
-      "MKD": "Severna Makedonija",
-      "ALB": "Albanija"
-      // Rest of the mapping will be added as needed
-    };
-    
-    return countryMappings[id] || null;
-  }
-
   return (
     <div className="map-container w-full h-[65vh] max-h-[800px] border rounded-lg shadow-lg overflow-hidden bg-white">
       <div ref={mapContainerRef} className="w-full h-full relative">
-        {/* The SVG map will be inserted here */}
+        {/* SVG mapa će biti ubačena ovde */}
       </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .map-container path {
+          fill: #e0e0e0;
+          stroke: #c0c0c0;
+          stroke-width: 0.5px;
+          transition: fill 0.3s ease, stroke 0.3s ease, stroke-width 0.3s ease;
+        }
+        
+        .map-container path:hover {
+          cursor: pointer;
+          stroke: #10b981;
+          stroke-width: 1.5px;
+        }
+        
+        .player-country {
+          fill: #3b82f6 !important;
+          stroke-width: 0.5px;
+          stroke: #ffffff;
+        }
+        
+        .computer-country {
+          fill: #ef4444 !important;
+          stroke-width: 0.5px;
+          stroke: #ffffff;
+        }
+        
+        .highlighted {
+          stroke: #10b981 !important;
+          stroke-width: 2px !important;
+        }
+      `}} />
     </div>
   );
 };
