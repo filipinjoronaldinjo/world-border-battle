@@ -13,18 +13,36 @@ interface CountryInputProps {
 const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
   const { gameState, getAvailableCountries } = useGame();
   const [input, setInput] = useState('');
-  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   const availableCountries = gameState.currentCountry 
     ? getAvailableCountries(gameState.currentCountry) 
     : Object.keys(countryData);
 
   useEffect(() => {
-    // Focus the input when the component mounts
+    // Fokusiranje na input polje kada se komponenta montira
     if (inputRef.current) {
       inputRef.current.focus();
     }
+  }, []);
+
+  useEffect(() => {
+    // Handler za klik van dropdown-a
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,34 +50,52 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
     setInput(value);
 
     if (value.length > 0) {
-      const match = findSuggestion(value);
-      setSuggestion(match);
+      const matches = findSuggestions(value);
+      setSuggestions(matches);
+      setSelectedIndex(0);
+      setShowDropdown(matches.length > 0);
     } else {
-      setSuggestion(null);
+      setSuggestions([]);
+      setShowDropdown(false);
     }
   };
 
-  const findSuggestion = (text: string): string | null => {
+  const findSuggestions = (text: string): string[] => {
     const normalizedText = text.toLocaleLowerCase('sr-Latn');
     
-    // First try exact available countries that start with the input
-    for (const country of availableCountries) {
-      if (country.toLocaleLowerCase('sr-Latn').startsWith(normalizedText)) {
-        return country;
-      }
-    }
-    
-    return null;
+    return availableCountries.filter(country => 
+      country.toLocaleLowerCase('sr-Latn').includes(normalizedText)
+    ).sort((a, b) => {
+      // Prvo prikazujemo one koje počinju sa unetim tekstom
+      const aStartsWith = a.toLocaleLowerCase('sr-Latn').startsWith(normalizedText);
+      const bStartsWith = b.toLocaleLowerCase('sr-Latn').startsWith(normalizedText);
+      
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
+      return a.localeCompare(b, 'sr-Latn');
+    }).slice(0, 8); // Ograničimo na 8 predloga
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && suggestion) {
-      submitCountry(suggestion);
-    } else if (e.key === 'Tab' && suggestion) {
+    if (e.key === 'ArrowDown' && showDropdown) {
       e.preventDefault();
-      setInput(suggestion);
-      setSuggestion(null);
+      setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp' && showDropdown) {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : prev));
+    } else if (e.key === 'Enter' && showDropdown && suggestions.length > 0) {
+      e.preventDefault();
+      selectSuggestion(suggestions[selectedIndex]);
+    } else if (e.key === 'Escape' && showDropdown) {
+      e.preventDefault();
+      setShowDropdown(false);
     }
+  };
+
+  const selectSuggestion = (country: string) => {
+    setInput(country);
+    setShowDropdown(false);
+    submitCountry(country);
   };
 
   const submitCountry = (country: string) => {
@@ -76,19 +112,18 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
     
     onSubmit(country);
     setInput('');
-    setSuggestion(null);
+    setSuggestions([]);
+    setShowDropdown(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (suggestion) {
-      submitCountry(suggestion);
-    } else if (input && availableCountries.includes(input)) {
+    if (input && availableCountries.includes(input)) {
       submitCountry(input);
+    } else if (suggestions.length > 0) {
+      submitCountry(suggestions[selectedIndex]);
     }
   };
-
-  const displayValue = input || '';
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto relative">
@@ -96,33 +131,45 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
         <Input
           ref={inputRef}
           type="text"
-          value={displayValue}
+          value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onFocus={() => input.length > 0 && setSuggestions(findSuggestions(input)).length > 0 && setShowDropdown(true)}
           placeholder={gameState.currentCountry 
             ? `Nađi državu koja se graniči sa ${gameState.currentCountry}...` 
             : "Unesite ime države..."}
-          className="pr-24 py-6 text-lg"
+          className="py-6 text-lg"
           disabled={gameState.isGameOver}
         />
-        
-        {suggestion && (
-          <div className="absolute inset-0 flex items-center pointer-events-none">
-            <div className="pl-4 text-lg text-muted-foreground">
-              <span className="invisible">{input}</span>
-              <span>{suggestion.slice(input.length)}</span>
-            </div>
-          </div>
-        )}
         
         <Button 
           type="submit"
           className="absolute right-1 top-1 bottom-1"
-          disabled={!suggestion && !availableCountries.includes(input)}
+          disabled={!input || (!availableCountries.includes(input) && suggestions.length === 0)}
         >
           Igraj
         </Button>
       </div>
+      
+      {showDropdown && suggestions.length > 0 && (
+        <div 
+          ref={dropdownRef}
+          className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+        >
+          <ul className="py-1">
+            {suggestions.map((suggestion, index) => (
+              <li 
+                key={suggestion}
+                className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${index === selectedIndex ? 'bg-blue-50 text-primary-foreground' : ''}`}
+                onClick={() => selectSuggestion(suggestion)}
+                onMouseEnter={() => setSelectedIndex(index)}
+              >
+                {suggestion}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </form>
   );
 };

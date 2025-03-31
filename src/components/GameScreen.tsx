@@ -14,7 +14,117 @@ const GameScreen: React.FC = () => {
   const [playerTurn, setPlayerTurn] = useState(true);
   const [computerThinking, setComputerThinking] = useState(false);
 
-  // Handle player move
+  // Računarska logika zasnovana na težini igre
+  const calculateComputerMove = () => {
+    // Ako nema trenutne države, ne možemo da napravimo potez
+    if (!gameState.currentCountry || !countryData[gameState.currentCountry]) {
+      return null;
+    }
+    
+    const neighbors = countryData[gameState.currentCountry].borders;
+    const availableNeighbors = neighbors.filter(
+      neighbor => !gameState.usedCountries.includes(neighbor) && countryData[neighbor]
+    );
+    
+    // Ako nema dostupnih suseda, računar je izgubio
+    if (availableNeighbors.length === 0) {
+      return null;
+    }
+    
+    // Za lak nivo - nasumično bira
+    if (gameState.difficulty === 'lako') {
+      const randomIndex = Math.floor(Math.random() * availableNeighbors.length);
+      return availableNeighbors[randomIndex];
+    }
+    
+    // Za srednji nivo - preferira države koje će dovesti igrača u ćorsokak
+    if (gameState.difficulty === 'srednje') {
+      // Prvo traži potez koji će dovesti igrača u ćorsokak
+      for (const neighbor of availableNeighbors) {
+        const neighborBorders = countryData[neighbor].borders;
+        const availableBorders = neighborBorders.filter(
+          border => !gameState.usedCountries.includes(border) && border !== neighbor
+        );
+        
+        if (availableBorders.length === 0) {
+          return neighbor; // Našli smo ćorsokak za igrača
+        }
+      }
+      
+      // Ako nema ćorsokaka, biramo nasumično
+      const randomIndex = Math.floor(Math.random() * availableNeighbors.length);
+      return availableNeighbors[randomIndex];
+    }
+    
+    // Za težak nivo - koristi naprednu strategiju
+    if (gameState.difficulty === 'teško') {
+      // Prvo traži potez koji vodi direktno do pobede
+      for (const neighbor of availableNeighbors) {
+        const neighborBorders = countryData[neighbor].borders;
+        const availableBorders = neighborBorders.filter(
+          border => !gameState.usedCountries.includes(border) && border !== neighbor
+        );
+        
+        if (availableBorders.length === 0) {
+          return neighbor; // Direktna pobeda
+        }
+      }
+      
+      // Zatim traži potez koji nudi najmanje opcija igraču
+      let bestMove = null;
+      let minOptions = Infinity;
+      
+      for (const neighbor of availableNeighbors) {
+        const neighborBorders = countryData[neighbor].borders;
+        const availableBorders = neighborBorders.filter(
+          border => !gameState.usedCountries.includes(border) && border !== neighbor
+        );
+        
+        // Proveravamo da li igrač može da pobedi sa bilo kojim potezom
+        const playerCanWin = availableBorders.some(border => {
+          const borderBorders = countryData[border]?.borders || [];
+          return borderBorders.every(b => 
+            gameState.usedCountries.includes(b) || b === neighbor || !countryData[b]
+          );
+        });
+        
+        // Ako igrač ne može da pobedi i imamo manje opcija nego pre
+        if (!playerCanWin && availableBorders.length < minOptions) {
+          minOptions = availableBorders.length;
+          bestMove = neighbor;
+        }
+      }
+      
+      // Ako nismo našli dobar potez, biramo opciju sa najmanje mogućnosti
+      if (!bestMove) {
+        bestMove = availableNeighbors.reduce((best, current) => {
+          const currentOptions = countryData[current].borders.filter(
+            b => !gameState.usedCountries.includes(b) && b !== current
+          ).length;
+          
+          const bestOptions = best ? countryData[best].borders.filter(
+            b => !gameState.usedCountries.includes(b) && b !== best
+          ).length : Infinity;
+          
+          return currentOptions < bestOptions ? current : best;
+        }, null);
+      }
+      
+      // Ako i dalje nemamo potez, biramo nasumično
+      if (!bestMove && availableNeighbors.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableNeighbors.length);
+        bestMove = availableNeighbors[randomIndex];
+      }
+      
+      return bestMove;
+    }
+    
+    // Podrazumevani potez ako ništa drugo ne prođe
+    const randomIndex = Math.floor(Math.random() * availableNeighbors.length);
+    return availableNeighbors[randomIndex];
+  };
+
+  // Obrada poteza igrača
   const handlePlayerMove = (country: string) => {
     const moveSuccess = makePlayerMove(country);
     
@@ -22,10 +132,18 @@ const GameScreen: React.FC = () => {
       setPlayerTurn(false);
       
       if (!gameState.isGameOver) {
-        // Add delay for computer's turn to make it feel more natural
+        // Dodaj kašnjenje za potez računara da bi izgledalo prirodnije
         setComputerThinking(true);
         setTimeout(() => {
-          makeComputerMove();
+          const computerCountry = calculateComputerMove();
+          
+          if (computerCountry) {
+            makeComputerMove(computerCountry);
+          } else {
+            // Ako računar ne može da nađe potez, igrač je pobedio
+            makeComputerMove(null);
+          }
+          
           setPlayerTurn(true);
           setComputerThinking(false);
         }, 1500);
@@ -33,7 +151,7 @@ const GameScreen: React.FC = () => {
     }
   };
 
-  // Show toast for first move instructions
+  // Prikaži obaveštenje za prvi potez
   useEffect(() => {
     if (gameState.isGameStarted && gameState.playerHistory.length === 0) {
       toast({
@@ -66,10 +184,10 @@ const GameScreen: React.FC = () => {
 
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="lg:w-3/4 flex flex-col gap-6">
-          {/* Map */}
+          {/* Mapa */}
           <WorldMap />
           
-          {/* Input and Status */}
+          {/* Unos i Status */}
           <div className="bg-card rounded-lg shadow-md p-6">
             {gameState.isGameOver ? (
               <div className="text-center py-4">
@@ -101,14 +219,14 @@ const GameScreen: React.FC = () => {
                 <CountryInput onSubmit={handlePlayerMove} />
                 
                 <div className="mt-4 text-center text-sm text-muted-foreground">
-                  <p>Pritisnite Tab za dovršavanje predloga ili Enter za potvrdu</p>
+                  <p>Koristite strelice za navigaciju kroz predloge i Enter za potvrdu</p>
                 </div>
               </>
             )}
           </div>
         </div>
         
-        {/* Sidebar with move history */}
+        {/* Bočna traka sa istorijom poteza */}
         <div className="lg:w-1/4">
           <MoveHistory />
           
