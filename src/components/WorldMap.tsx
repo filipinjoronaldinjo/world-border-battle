@@ -12,8 +12,8 @@ const WorldMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Load SVG map from public assets folder
-    fetch('/assets/world-map.svg')
+    // Load SVG map from a public URL with a quality world map
+    fetch('https://raw.githubusercontent.com/djaiss/mapsicon/master/world/vector.svg')
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -25,10 +25,12 @@ const WorldMap: React.FC = () => {
           mapContainerRef.current.innerHTML = svgContent;
           
           // Add event listeners to country paths
-          const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
+          const countryPaths = mapContainerRef.current.querySelectorAll('path');
           countryPaths.forEach(path => {
-            const countryName = path.getAttribute('data-name');
+            const countryName = path.getAttribute('name') || path.getAttribute('id');
             if (!countryName) return;
+            
+            path.setAttribute('data-name', countryName);
             
             path.addEventListener('mouseenter', () => {
               setHighlightedCountry(countryName);
@@ -53,11 +55,54 @@ const WorldMap: React.FC = () => {
       .catch(error => {
         console.error("Error loading map:", error);
         
-        // If loading fails, show error message
+        // If loading fails, show error message and try loading from local asset as fallback
         if (mapContainerRef.current) {
           mapContainerRef.current.innerHTML = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
-            <text x="500" y="250" text-anchor="middle" font-size="20">Map loading failed</text>
+            <text x="500" y="230" text-anchor="middle" font-size="20">Map loading failed</text>
+            <text x="500" y="260" text-anchor="middle" font-size="16">Trying alternative source...</text>
           </svg>`;
+          
+          // Try loading from local assets as fallback
+          fetch('/assets/world-map.svg')
+            .then(response => response.text())
+            .then(svgContent => {
+              if (mapContainerRef.current) {
+                mapContainerRef.current.innerHTML = svgContent;
+                
+                // Add event listeners to country paths
+                const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
+                countryPaths.forEach(path => {
+                  const countryName = path.getAttribute('data-name');
+                  if (!countryName) return;
+                  
+                  path.addEventListener('mouseenter', () => {
+                    setHighlightedCountry(countryName);
+                    path.classList.add('hover');
+                  });
+                  
+                  path.addEventListener('mouseleave', () => {
+                    setHighlightedCountry(null);
+                    path.classList.remove('hover');
+                  });
+                  
+                  path.addEventListener('click', () => {
+                    makePlayerMove(countryName);
+                    zoomToCountry(path as SVGPathElement);
+                  });
+                });
+                
+                // Apply initial coloring
+                updateCountryColors();
+              }
+            })
+            .catch(err => {
+              console.error("Fallback map loading also failed:", err);
+              if (mapContainerRef.current) {
+                mapContainerRef.current.innerHTML = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+                  <text x="500" y="250" text-anchor="middle" font-size="20">Map loading failed</text>
+                </svg>`;
+              }
+            });
         }
       });
     
@@ -79,7 +124,7 @@ const WorldMap: React.FC = () => {
     if (!mapContainerRef.current) return;
     
     // Reset all countries to default values
-    const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
+    const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name], path[id]');
     countryPaths.forEach(path => {
       path.classList.remove('player-country', 'computer-country', 'highlighted');
       path.setAttribute('fill', '#e0e0e0');
@@ -88,7 +133,7 @@ const WorldMap: React.FC = () => {
     
     // Mark player countries
     gameState.playerHistory.forEach(country => {
-      const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
+      const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"], path[id="${country}"]`);
       if (path) {
         path.classList.add('player-country');
         path.setAttribute('fill', '#3b82f6'); // blue
@@ -99,7 +144,7 @@ const WorldMap: React.FC = () => {
     
     // Mark computer countries
     gameState.computerHistory.forEach(country => {
-      const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
+      const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"], path[id="${country}"]`);
       if (path) {
         path.classList.add('computer-country');
         path.setAttribute('fill', '#ef4444'); // red
@@ -110,7 +155,7 @@ const WorldMap: React.FC = () => {
     
     // Mark highlighted country
     if (gameState.highlightedCountry) {
-      const path = mapContainerRef.current.querySelector(`path[data-name="${gameState.highlightedCountry}"]`);
+      const path = mapContainerRef.current.querySelector(`path[data-name="${gameState.highlightedCountry}"], path[id="${gameState.highlightedCountry}"]`);
       if (path) {
         path.classList.add('highlighted');
         path.setAttribute('stroke', '#10b981'); // green
@@ -121,7 +166,7 @@ const WorldMap: React.FC = () => {
     // Zoom to the most recently selected country
     const lastCountry = gameState.currentCountry;
     if (lastCountry && lastCountry !== activeCountry) {
-      const countryPath = mapContainerRef.current.querySelector(`path[data-name="${lastCountry}"]`) as SVGPathElement;
+      const countryPath = mapContainerRef.current.querySelector(`path[data-name="${lastCountry}"], path[id="${lastCountry}"]`) as SVGPathElement;
       if (countryPath) {
         zoomToCountry(countryPath);
         setActiveCountry(lastCountry);
