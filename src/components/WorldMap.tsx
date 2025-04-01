@@ -50,9 +50,8 @@ const WorldMap: React.FC = () => {
       .catch(error => {
         console.error("Error loading map:", error);
         
-        // If loading fails, show alternative map
+        // If loading fails, show error message
         if (mapContainerRef.current) {
-          // Basic map as backup with minimal countries (not shown here for brevity)
           mapContainerRef.current.innerHTML = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
             <text x="500" y="250" text-anchor="middle" font-size="20">Map loading failed</text>
           </svg>`;
