@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/GameContext';
 import WorldMap from './WorldMap';
@@ -146,7 +145,7 @@ const GameScreen: React.FC = () => {
               duration: 3000
             });
           }
-        }, 1500);
+        }, 1000); // Reduced from 1500ms to 1000ms for faster gameplay
       }
     }
   };
