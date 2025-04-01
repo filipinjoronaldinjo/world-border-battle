@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/GameContext';
 import WorldMap from './WorldMap';
@@ -145,10 +146,36 @@ const GameScreen: React.FC = () => {
               duration: 3000
             });
           }
-        }, 1000); // Reduced from 1500ms to 1000ms for faster gameplay
+        }, 1000); // 1 second delay for computer move
       }
     }
   };
+
+  // Ensure the computer always makes a move after the first player move
+  useEffect(() => {
+    // Check if it's the first move (player has made a move but computer hasn't)
+    if (gameState.playerHistory.length === 1 && gameState.computerHistory.length === 0 && !computerThinking && !gameState.isGameOver) {
+      // Make computer's first move
+      setPlayerTurn(false);
+      setComputerThinking(true);
+      
+      setTimeout(() => {
+        const computerCountry = calculateComputerMove();
+        makeComputerMove(computerCountry);
+        setPlayerTurn(true);
+        setComputerThinking(false);
+        
+        // Show toast notification for computer's move
+        if (computerCountry) {
+          toast({
+            title: "Računar je odigrao",
+            description: `Računar je izabrao državu: ${computerCountry}`,
+            duration: 3000
+          });
+        }
+      }, 1000);
+    }
+  }, [gameState.playerHistory, gameState.computerHistory, computerThinking]);
 
   // Show notification for first move
   useEffect(() => {

@@ -45,6 +45,9 @@ const WorldMap: React.FC = () => {
               zoomToCountry(path as SVGPathElement);
             });
           });
+          
+          // Apply initial coloring
+          updateCountryColors();
         }
       })
       .catch(error => {
@@ -71,7 +74,8 @@ const WorldMap: React.FC = () => {
     };
   }, [setHighlightedCountry, makePlayerMove]);
 
-  useEffect(() => {
+  // Function to update country colors based on game state
+  const updateCountryColors = () => {
     if (!mapContainerRef.current) return;
     
     // Reset all countries to default values
@@ -88,6 +92,8 @@ const WorldMap: React.FC = () => {
       if (path) {
         path.classList.add('player-country');
         path.setAttribute('fill', '#3b82f6'); // blue
+        path.setAttribute('stroke', '#ffffff');
+        path.setAttribute('stroke-width', '0.5');
       }
     });
     
@@ -97,6 +103,8 @@ const WorldMap: React.FC = () => {
       if (path) {
         path.classList.add('computer-country');
         path.setAttribute('fill', '#ef4444'); // red
+        path.setAttribute('stroke', '#ffffff');
+        path.setAttribute('stroke-width', '0.5');
       }
     });
     
@@ -119,7 +127,11 @@ const WorldMap: React.FC = () => {
         setActiveCountry(lastCountry);
       }
     }
-    
+  };
+
+  // Add an explicit effect for updating country colors whenever game state changes
+  useEffect(() => {
+    updateCountryColors();
   }, [gameState.playerHistory, gameState.computerHistory, gameState.highlightedCountry, gameState.currentCountry, activeCountry]);
 
   const zoomToCountry = (countryPath: SVGPathElement) => {
