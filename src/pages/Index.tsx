@@ -12,7 +12,7 @@ const GameContainer: React.FC = () => {
   useEffect(() => {
     const preloadMap = async () => {
       try {
-        const response = await fetch('/src/assets/world-map.svg');
+        const response = await fetch('/assets/world-map.svg');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

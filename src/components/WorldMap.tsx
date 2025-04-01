@@ -12,8 +12,8 @@ const WorldMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Load SVG map from assets folder
-    fetch('/src/assets/world-map.svg')
+    // Load SVG map from public assets folder
+    fetch('/assets/world-map.svg')
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -80,7 +80,7 @@ const WorldMap: React.FC = () => {
     countryPaths.forEach(path => {
       path.classList.remove('player-country', 'computer-country', 'highlighted');
       path.setAttribute('fill', '#e0e0e0');
-      path.setAttribute('stroke', '#ffffff');
+      path.setAttribute('stroke', '#c0c0c0');
     });
     
     // Mark player countries
