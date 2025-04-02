@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '@/context/GameContext';
+import { toast } from '@/components/ui/use-toast';
 
 const WorldMap: React.FC = () => {
   const { gameState, makePlayerMove, setHighlightedCountry } = useGame();
@@ -8,29 +9,72 @@ const WorldMap: React.FC = () => {
   const [zoom, setZoom] = useState(1);
   const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
   const [activeCountry, setActiveCountry] = useState<string | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
     
-    // Load SVG map from a public URL with a quality world map
-    fetch('https://raw.githubusercontent.com/djaiss/mapsicon/master/world/vector.svg')
+    // Use a reliable map source - Natural Earth Data styled SVG
+    const mapUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+    
+    // Use D3.js to render the map (this is just for fetching)
+    fetch(mapUrl)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return response.text();
+        return response.json();
       })
-      .then(svgContent => {
+      .then(topojsonData => {
+        // Since we can't directly use topojson in this context, let's use our uploaded SVG
         if (mapContainerRef.current) {
-          mapContainerRef.current.innerHTML = svgContent;
+          // Use the uploaded map image instead
+          mapContainerRef.current.innerHTML = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+            <image href="/lovable-uploads/7376856b-6660-45bd-abd0-5a2cddaf5f14.png" width="1000" height="500" preserveAspectRatio="xMidYMid meet"/>
+            
+            <!-- Overlay clickable country regions -->
+            <g id="countries">
+              <!-- North America -->
+              <path data-name="United States" d="M180 130 L210 150 L240 170 L250 190 L230 210 L210 215 L180 210 L150 200 L140 180 L150 160 L180 130" fill="transparent" />
+              <path data-name="Canada" d="M200 100 L250 100 L300 120 L320 110 L340 120 L280 140 L270 160 L240 170 L210 150 L180 130 L200 100" fill="transparent" />
+              <path data-name="Mexico" d="M150 200 L180 210 L210 215 L200 240 L180 250 L160 240 L140 220 L150 200" fill="transparent" />
+              
+              <!-- South America -->
+              <path data-name="Brazil" d="M225 280 L250 275 L270 280 L290 290 L295 310 L280 330 L265 335 L250 330 L240 310 L225 300" fill="transparent" />
+              <path data-name="Argentina" d="M240 340 L245 340 L260 345 L265 350 L260 370 L250 380 L240 370 L235 350" fill="transparent" />
+              <path data-name="Peru" d="M210 300 L220 295 L240 310 L230 320 L215 315" fill="transparent" />
+              <path data-name="Colombia" d="M205 263 L210 260 L220 270 L215 290 L205 295 L200 285 L203 275" fill="transparent" />
+              
+              <!-- Europe -->
+              <path data-name="United Kingdom" d="M470 180 L480 165 L490 170 L485 185 L475 190" fill="transparent" />
+              <path data-name="France" d="M460 220 L475 205 L490 210 L492 215 L485 240 L450 225" fill="transparent" />
+              <path data-name="Germany" d="M500 207 L505 215 L515 210 L525 220 L515 195 L505 190" fill="transparent" />
+              <path data-name="Italy" d="M485 240 L505 238 L485 210 L475 205 L460 220 L465 235" fill="transparent" />
+              <path data-name="Spain" d="M450 225 L465 235 L460 250 L425 245 L430 230" fill="transparent" />
+              <path data-name="Russia" d="M540 145 L570 115 L690 115 L715 160 L715 210 L650 225 L600 210 L580 215 L560 228 L555 223 L545 227 L538 232 L535 200 L530 185 L520 150" fill="transparent" />
+              
+              <!-- Africa -->
+              <path data-name="Egypt" d="M558 265 L575 240 L590 245 L589 270 L565 280" fill="transparent" />
+              <path data-name="Nigeria" d="M485 325 L495 330 L500 345 L490 340" fill="transparent" />
+              <path data-name="South Africa" d="M560 410 L585 405 L595 415 L570 420" fill="transparent" />
+              <path data-name="Algeria" d="M470 285 L495 270 L525 280 L530 305 L480 315" fill="transparent" />
+              
+              <!-- Asia -->
+              <path data-name="China" d="M715 210 L715 160 L750 150 L790 170 L795 220 L780 235 L765 235 L755 240 L745 248 L740 241 L735 238 L725 238 L715 243 L710 240 L710 225 L695 215 L690 195 L670 190" fill="transparent" />
+              <path data-name="India" d="M710 255 L740 230 L745 260 L730 280 L685 270 L685 260" fill="transparent" />
+              <path data-name="Japan" d="M815 210 L825 200 L830 205 L820 215" fill="transparent" />
+              <path data-name="Saudi Arabia" d="M600 260 L625 250 L640 270 L615 290 L590 270" fill="transparent" />
+              
+              <!-- Australia -->
+              <path data-name="Australia" d="M775 355 L810 340 L830 365 L810 390 L775 380" fill="transparent" />
+            </g>
+          </svg>`;
           
           // Add event listeners to country paths
-          const countryPaths = mapContainerRef.current.querySelectorAll('path');
+          const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
           countryPaths.forEach(path => {
-            const countryName = path.getAttribute('name') || path.getAttribute('id');
+            const countryName = path.getAttribute('data-name');
             if (!countryName) return;
-            
-            path.setAttribute('data-name', countryName);
             
             path.addEventListener('mouseenter', () => {
               setHighlightedCountry(countryName);
@@ -43,66 +87,101 @@ const WorldMap: React.FC = () => {
             });
             
             path.addEventListener('click', () => {
-              makePlayerMove(countryName);
-              zoomToCountry(path as SVGPathElement);
+              if (gameState.isPlayerTurn) {
+                makePlayerMove(countryName);
+                zoomToCountry(path as SVGPathElement);
+              } else {
+                toast({
+                  title: "Not your turn",
+                  description: "Please wait for computer to make a move",
+                  variant: "destructive"
+                });
+              }
             });
           });
           
-          // Apply initial coloring
+          setMapLoaded(true);
           updateCountryColors();
         }
       })
       .catch(error => {
         console.error("Error loading map:", error);
         
-        // If loading fails, show error message and try loading from local asset as fallback
+        // Fallback to a simple map using the uploaded image
         if (mapContainerRef.current) {
           mapContainerRef.current.innerHTML = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
-            <text x="500" y="230" text-anchor="middle" font-size="20">Map loading failed</text>
-            <text x="500" y="260" text-anchor="middle" font-size="16">Trying alternative source...</text>
+            <image href="/lovable-uploads/7376856b-6660-45bd-abd0-5a2cddaf5f14.png" width="1000" height="500" preserveAspectRatio="xMidYMid meet"/>
+            
+            <!-- Overlay clickable country regions -->
+            <g id="countries">
+              <!-- North America -->
+              <path data-name="United States" d="M180 130 L210 150 L240 170 L250 190 L230 210 L210 215 L180 210 L150 200 L140 180 L150 160 L180 130" fill="transparent" />
+              <path data-name="Canada" d="M200 100 L250 100 L300 120 L320 110 L340 120 L280 140 L270 160 L240 170 L210 150 L180 130 L200 100" fill="transparent" />
+              <path data-name="Mexico" d="M150 200 L180 210 L210 215 L200 240 L180 250 L160 240 L140 220 L150 200" fill="transparent" />
+              
+              <!-- South America -->
+              <path data-name="Brazil" d="M225 280 L250 275 L270 280 L290 290 L295 310 L280 330 L265 335 L250 330 L240 310 L225 300" fill="transparent" />
+              <path data-name="Argentina" d="M240 340 L245 340 L260 345 L265 350 L260 370 L250 380 L240 370 L235 350" fill="transparent" />
+              <path data-name="Peru" d="M210 300 L220 295 L240 310 L230 320 L215 315" fill="transparent" />
+              <path data-name="Colombia" d="M205 263 L210 260 L220 270 L215 290 L205 295 L200 285 L203 275" fill="transparent" />
+              
+              <!-- Europe -->
+              <path data-name="United Kingdom" d="M470 180 L480 165 L490 170 L485 185 L475 190" fill="transparent" />
+              <path data-name="France" d="M460 220 L475 205 L490 210 L492 215 L485 240 L450 225" fill="transparent" />
+              <path data-name="Germany" d="M500 207 L505 215 L515 210 L525 220 L515 195 L505 190" fill="transparent" />
+              <path data-name="Italy" d="M485 240 L505 238 L485 210 L475 205 L460 220 L465 235" fill="transparent" />
+              <path data-name="Spain" d="M450 225 L465 235 L460 250 L425 245 L430 230" fill="transparent" />
+              <path data-name="Russia" d="M540 145 L570 115 L690 115 L715 160 L715 210 L650 225 L600 210 L580 215 L560 228 L555 223 L545 227 L538 232 L535 200 L530 185 L520 150" fill="transparent" />
+              
+              <!-- Africa -->
+              <path data-name="Egypt" d="M558 265 L575 240 L590 245 L589 270 L565 280" fill="transparent" />
+              <path data-name="Nigeria" d="M485 325 L495 330 L500 345 L490 340" fill="transparent" />
+              <path data-name="South Africa" d="M560 410 L585 405 L595 415 L570 420" fill="transparent" />
+              <path data-name="Algeria" d="M470 285 L495 270 L525 280 L530 305 L480 315" fill="transparent" />
+              
+              <!-- Asia -->
+              <path data-name="China" d="M715 210 L715 160 L750 150 L790 170 L795 220 L780 235 L765 235 L755 240 L745 248 L740 241 L735 238 L725 238 L715 243 L710 240 L710 225 L695 215 L690 195 L670 190" fill="transparent" />
+              <path data-name="India" d="M710 255 L740 230 L745 260 L730 280 L685 270 L685 260" fill="transparent" />
+              <path data-name="Japan" d="M815 210 L825 200 L830 205 L820 215" fill="transparent" />
+              <path data-name="Saudi Arabia" d="M600 260 L625 250 L640 270 L615 290 L590 270" fill="transparent" />
+              
+              <!-- Australia -->
+              <path data-name="Australia" d="M775 355 L810 340 L830 365 L810 390 L775 380" fill="transparent" />
+            </g>
           </svg>`;
           
-          // Try loading from local assets as fallback
-          fetch('/assets/world-map.svg')
-            .then(response => response.text())
-            .then(svgContent => {
-              if (mapContainerRef.current) {
-                mapContainerRef.current.innerHTML = svgContent;
-                
-                // Add event listeners to country paths
-                const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
-                countryPaths.forEach(path => {
-                  const countryName = path.getAttribute('data-name');
-                  if (!countryName) return;
-                  
-                  path.addEventListener('mouseenter', () => {
-                    setHighlightedCountry(countryName);
-                    path.classList.add('hover');
-                  });
-                  
-                  path.addEventListener('mouseleave', () => {
-                    setHighlightedCountry(null);
-                    path.classList.remove('hover');
-                  });
-                  
-                  path.addEventListener('click', () => {
-                    makePlayerMove(countryName);
-                    zoomToCountry(path as SVGPathElement);
-                  });
+          // Add event listeners to country paths for the fallback map too
+          const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
+          countryPaths.forEach(path => {
+            const countryName = path.getAttribute('data-name');
+            if (!countryName) return;
+            
+            path.addEventListener('mouseenter', () => {
+              setHighlightedCountry(countryName);
+              path.classList.add('hover');
+            });
+            
+            path.addEventListener('mouseleave', () => {
+              setHighlightedCountry(null);
+              path.classList.remove('hover');
+            });
+            
+            path.addEventListener('click', () => {
+              if (gameState.isPlayerTurn) {
+                makePlayerMove(countryName);
+                zoomToCountry(path as SVGPathElement);
+              } else {
+                toast({
+                  title: "Not your turn",
+                  description: "Please wait for computer to make a move",
+                  variant: "destructive"
                 });
-                
-                // Apply initial coloring
-                updateCountryColors();
-              }
-            })
-            .catch(err => {
-              console.error("Fallback map loading also failed:", err);
-              if (mapContainerRef.current) {
-                mapContainerRef.current.innerHTML = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
-                  <text x="500" y="250" text-anchor="middle" font-size="20">Map loading failed</text>
-                </svg>`;
               }
             });
+          });
+          
+          setMapLoaded(true);
+          updateCountryColors();
         }
       });
     
@@ -117,26 +196,27 @@ const WorldMap: React.FC = () => {
         });
       }
     };
-  }, [setHighlightedCountry, makePlayerMove]);
+  }, [setHighlightedCountry, makePlayerMove, gameState.isPlayerTurn]);
 
   // Function to update country colors based on game state
   const updateCountryColors = () => {
-    if (!mapContainerRef.current) return;
+    if (!mapContainerRef.current || !mapLoaded) return;
     
     // Reset all countries to default values
-    const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name], path[id]');
+    const countryPaths = mapContainerRef.current.querySelectorAll('path[data-name]');
     countryPaths.forEach(path => {
       path.classList.remove('player-country', 'computer-country', 'highlighted');
-      path.setAttribute('fill', '#e0e0e0');
-      path.setAttribute('stroke', '#c0c0c0');
+      path.setAttribute('fill', 'transparent');
+      path.setAttribute('stroke', 'rgba(255,255,255,0.5)');
+      path.setAttribute('stroke-width', '0.5');
     });
     
     // Mark player countries
     gameState.playerHistory.forEach(country => {
-      const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"], path[id="${country}"]`);
+      const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
       if (path) {
         path.classList.add('player-country');
-        path.setAttribute('fill', '#3b82f6'); // blue
+        path.setAttribute('fill', 'rgba(59, 130, 246, 0.7)'); // blue with opacity
         path.setAttribute('stroke', '#ffffff');
         path.setAttribute('stroke-width', '0.5');
       }
@@ -144,10 +224,10 @@ const WorldMap: React.FC = () => {
     
     // Mark computer countries
     gameState.computerHistory.forEach(country => {
-      const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"], path[id="${country}"]`);
+      const path = mapContainerRef.current?.querySelector(`path[data-name="${country}"]`);
       if (path) {
         path.classList.add('computer-country');
-        path.setAttribute('fill', '#ef4444'); // red
+        path.setAttribute('fill', 'rgba(239, 68, 68, 0.7)'); // red with opacity
         path.setAttribute('stroke', '#ffffff');
         path.setAttribute('stroke-width', '0.5');
       }
@@ -155,7 +235,7 @@ const WorldMap: React.FC = () => {
     
     // Mark highlighted country
     if (gameState.highlightedCountry) {
-      const path = mapContainerRef.current.querySelector(`path[data-name="${gameState.highlightedCountry}"], path[id="${gameState.highlightedCountry}"]`);
+      const path = mapContainerRef.current.querySelector(`path[data-name="${gameState.highlightedCountry}"]`);
       if (path) {
         path.classList.add('highlighted');
         path.setAttribute('stroke', '#10b981'); // green
@@ -166,7 +246,7 @@ const WorldMap: React.FC = () => {
     // Zoom to the most recently selected country
     const lastCountry = gameState.currentCountry;
     if (lastCountry && lastCountry !== activeCountry) {
-      const countryPath = mapContainerRef.current.querySelector(`path[data-name="${lastCountry}"], path[id="${lastCountry}"]`) as SVGPathElement;
+      const countryPath = mapContainerRef.current.querySelector(`path[data-name="${lastCountry}"]`) as SVGPathElement;
       if (countryPath) {
         zoomToCountry(countryPath);
         setActiveCountry(lastCountry);
@@ -177,7 +257,7 @@ const WorldMap: React.FC = () => {
   // Add an explicit effect for updating country colors whenever game state changes
   useEffect(() => {
     updateCountryColors();
-  }, [gameState.playerHistory, gameState.computerHistory, gameState.highlightedCountry, gameState.currentCountry, activeCountry]);
+  }, [gameState.playerHistory, gameState.computerHistory, gameState.highlightedCountry, gameState.currentCountry, activeCountry, mapLoaded]);
 
   const zoomToCountry = (countryPath: SVGPathElement) => {
     if (!countryPath || !mapContainerRef.current) return;
@@ -195,8 +275,8 @@ const WorldMap: React.FC = () => {
       const svgElement = mapContainerRef.current.querySelector('svg');
       if (!svgElement) return;
       
-      const svgWidth = svgElement.viewBox.baseVal.width;
-      const svgHeight = svgElement.viewBox.baseVal.height;
+      const svgWidth = svgElement.viewBox.baseVal.width || 1000;
+      const svgHeight = svgElement.viewBox.baseVal.height || 500;
       
       const containerWidth = mapContainerRef.current.clientWidth;
       const containerHeight = mapContainerRef.current.clientHeight;
@@ -231,7 +311,7 @@ const WorldMap: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="map-container w-full h-[65vh] max-h-[800px] border rounded-lg shadow-lg overflow-hidden bg-white relative">
+      <div className="map-container w-full h-[65vh] max-h-[800px] border rounded-lg shadow-lg overflow-hidden bg-black relative">
         <div 
           ref={mapContainerRef} 
           className="w-full h-full"
@@ -263,26 +343,23 @@ const WorldMap: React.FC = () => {
       
       <style dangerouslySetInnerHTML={{ __html: `
         .map-container path {
-          fill: #e0e0e0;
-          stroke: #c0c0c0;
-          stroke-width: 0.5px;
+          cursor: pointer;
           transition: fill 0.3s ease, stroke 0.3s ease, stroke-width 0.3s ease;
         }
         
         .map-container path:hover {
-          cursor: pointer;
-          stroke: #10b981;
-          stroke-width: 1.5px;
+          stroke: #10b981 !important;
+          stroke-width: 1.5px !important;
         }
         
         .player-country {
-          fill: #3b82f6 !important;
+          fill: rgba(59, 130, 246, 0.7) !important; /* blue with opacity */
           stroke-width: 0.5px;
           stroke: #ffffff;
         }
         
         .computer-country {
-          fill: #ef4444 !important;
+          fill: rgba(239, 68, 68, 0.7) !important; /* red with opacity */
           stroke-width: 0.5px;
           stroke: #ffffff;
         }

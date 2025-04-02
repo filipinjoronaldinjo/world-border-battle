@@ -4,27 +4,35 @@ import { GameProvider, useGame } from '@/context/GameContext';
 import MainMenu from '@/components/MainMenu';
 import GameScreen from '@/components/GameScreen';
 import EndScreen from '@/components/EndScreen';
+import { toast } from '@/components/ui/use-toast';
 
 const GameContainer: React.FC = () => {
   const { gameState } = useGame();
 
-  // Preload SVG map
+  // Preload map assets
   useEffect(() => {
-    const preloadMap = async () => {
+    const preloadMapAssets = async () => {
       try {
-        const response = await fetch('/assets/world-map.svg');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        // We don't need to do anything with the response, just preload it
-        await response.text();
-        console.log("Map preloaded successfully");
+        // Preload the uploaded map image
+        const imgPreloader = new Image();
+        imgPreloader.src = '/lovable-uploads/7376856b-6660-45bd-abd0-5a2cddaf5f14.png';
+        imgPreloader.onload = () => {
+          console.log("Map image preloaded successfully");
+        };
+        imgPreloader.onerror = (error) => {
+          console.error("Failed to preload map image:", error);
+          toast({
+            title: "Warning",
+            description: "Map assets failed to preload. There might be display issues.",
+            variant: "destructive"
+          });
+        };
       } catch (error) {
-        console.error("Failed to preload map:", error);
+        console.error("Error in preloading assets:", error);
       }
     };
     
-    preloadMap();
+    preloadMapAssets();
   }, []);
 
   if (gameState.isGameOver) {
