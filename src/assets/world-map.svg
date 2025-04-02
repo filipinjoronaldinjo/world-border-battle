@@ -3,13 +3,6 @@
   <path data-name="Kanada" d="M200 100 L250 100 L300 120 L320 110 L340 120 L280 140 L270 160 L240 170 L210 150 L180 130 L200 100" />
   <path data-name="Sjedinjene Američke Države" d="M180 130 L210 150 L240 170 L250 190 L230 210 L210 215 L180 210 L150 200 L140 180 L150 160 L180 130" />
   <path data-name="Meksiko" d="M150 200 L180 210 L210 215 L200 240 L180 250 L160 240 L140 220 L150 200" />
-  <path data-name="Gvatemala" d="M180 250 L190 245 L195 250 L185 255" />
-  <path data-name="Belize" d="M185 245 L187 243 L189 245 L187 247" />
-  <path data-name="Salvador" d="M185 255 L190 253 L195 255 L190 257" />
-  <path data-name="Honduras" d="M190 245 L195 243 L200 245 L195 250" />
-  <path data-name="Nikaragva" d="M190 255 L195 250 L200 252 L195 257" />
-  <path data-name="Kostarika" d="M195 257 L200 255 L205 257 L200 260" />
-  <path data-name="Panama" d="M200 260 L205 257 L210 260 L205 263" />
   
   <!-- South America -->
   <path data-name="Kolumbija" d="M205 263 L210 260 L220 270 L215 290 L205 295 L200 285 L203 275" />

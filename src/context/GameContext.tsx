@@ -14,7 +14,7 @@ interface GameState {
   highlightedCountry: string | null;
   playerHistory: string[];
   computerHistory: string[];
-  isPlayerTurn: boolean; // Added this property
+  isPlayerTurn: boolean;
 }
 
 interface GameContextType {
@@ -37,7 +37,7 @@ const initialGameState: GameState = {
   highlightedCountry: null,
   playerHistory: [],
   computerHistory: [],
-  isPlayerTurn: true, // Initialize player turn to true
+  isPlayerTurn: true,
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -102,7 +102,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         usedCountries: newUsedCountries,
         currentCountry: country,
         playerHistory: newPlayerHistory,
-        isPlayerTurn: false, // Set to false when game ends
+        isPlayerTurn: false,
       });
       return true;
     }
@@ -130,6 +130,28 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
+    // Ensure we're not duplicating a move that was already made
+    if (gameState.usedCountries.includes(computerChoice)) {
+      console.error(`Computer tried to use already used country: ${computerChoice}`);
+      const availableCountries = countryData[gameState.currentCountry].borders.filter(
+        (c) => !gameState.usedCountries.includes(c)
+      );
+      
+      if (availableCountries.length > 0) {
+        // Try a different country if available
+        console.log("Computer choosing a different country");
+        makeComputerMove(availableCountries[0]);
+      } else {
+        // No valid moves, player wins
+        setGameState({
+          ...gameState,
+          isGameOver: true,
+          playerWon: true,
+        });
+      }
+      return;
+    }
+
     const newUsedCountries = [...gameState.usedCountries, computerChoice];
     const newComputerHistory = [...gameState.computerHistory, computerChoice];
 
@@ -146,7 +168,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         usedCountries: newUsedCountries,
         currentCountry: computerChoice,
         computerHistory: newComputerHistory,
-        isPlayerTurn: false, // Game is over, player can't move
+        isPlayerTurn: false,
       });
       return;
     }

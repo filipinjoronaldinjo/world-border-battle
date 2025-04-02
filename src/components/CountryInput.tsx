@@ -28,14 +28,14 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
   const allCountries = Object.keys(countryData);
 
   useEffect(() => {
-    // Fokusiranje na input polje kada se komponenta montira
+    // Auto-focus the input field when component mounts
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, []);
 
   useEffect(() => {
-    // Handler za klik van dropdown-a
+    // Handler for click outside dropdown
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
           inputRef.current && !inputRef.current.contains(event.target as Node)) {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
 import { Card } from '@/components/ui/card';
@@ -16,9 +15,21 @@ const WorldMap: React.FC = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load the SVG map when component mounts
   useEffect(() => {
+    // Set a timeout to show error message if map doesn't load within 10 seconds
+    loadingTimeoutRef.current = setTimeout(() => {
+      if (loading) {
+        toast({
+          title: "Map loading issue",
+          description: "The map is taking longer than expected to load. Please refresh the page.",
+          variant: "destructive"
+        });
+      }
+    }, 10000);
+
     const loadMap = async () => {
       try {
         const response = await fetch('/assets/world-map.svg');
@@ -33,6 +44,11 @@ const WorldMap: React.FC = () => {
           setMapLoaded(true);
           setLoading(false);
           console.log("Map loaded successfully");
+          
+          // Clear the timeout since map loaded successfully
+          if (loadingTimeoutRef.current) {
+            clearTimeout(loadingTimeoutRef.current);
+          }
         }
       } catch (error) {
         console.error("Error loading map:", error);
@@ -46,9 +62,16 @@ const WorldMap: React.FC = () => {
     };
 
     loadMap();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
   }, []);
 
-  // Initialize click handlers and styling for country paths
+  // Initialize country paths
   const initializeCountryPaths = () => {
     if (!svgRef.current) return;
     
@@ -78,8 +101,13 @@ const WorldMap: React.FC = () => {
         updateCountryColor(path, countryName);
       });
       
+      // We're keeping the click handler but NOT triggering actual game moves
+      // This is just for visual feedback and debugging
       path.addEventListener('click', () => {
-        if (countryName) console.log(`Clicked on ${countryName}`);
+        if (countryName) {
+          console.log(`Clicked on ${countryName}`);
+          // We don't trigger any game action here - it should be handled via the input form
+        }
       });
       
       // Set initial color based on game state
