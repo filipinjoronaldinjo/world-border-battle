@@ -14,6 +14,7 @@ interface GameState {
   highlightedCountry: string | null;
   playerHistory: string[];
   computerHistory: string[];
+  isPlayerTurn: boolean; // Added this property
 }
 
 interface GameContextType {
@@ -36,6 +37,7 @@ const initialGameState: GameState = {
   highlightedCountry: null,
   playerHistory: [],
   computerHistory: [],
+  isPlayerTurn: true, // Initialize player turn to true
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -100,6 +102,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         usedCountries: newUsedCountries,
         currentCountry: country,
         playerHistory: newPlayerHistory,
+        isPlayerTurn: false, // Set to false when game ends
       });
       return true;
     }
@@ -109,6 +112,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       usedCountries: newUsedCountries,
       currentCountry: country,
       playerHistory: newPlayerHistory,
+      isPlayerTurn: false, // Switch to computer's turn
     });
     return true;
   };
@@ -142,6 +146,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         usedCountries: newUsedCountries,
         currentCountry: computerChoice,
         computerHistory: newComputerHistory,
+        isPlayerTurn: false, // Game is over, player can't move
       });
       return;
     }
@@ -151,6 +156,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       usedCountries: newUsedCountries,
       currentCountry: computerChoice,
       computerHistory: newComputerHistory,
+      isPlayerTurn: true, // Switch back to player's turn
     });
   };
 
