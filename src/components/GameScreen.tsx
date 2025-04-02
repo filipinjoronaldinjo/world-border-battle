@@ -11,7 +11,6 @@ import { countryData } from '@/data/countryData';
 
 const GameScreen: React.FC = () => {
   const { gameState, makePlayerMove, makeComputerMove, resetGame } = useGame();
-  const [playerTurn, setPlayerTurn] = useState(true);
   const [computerThinking, setComputerThinking] = useState(false);
 
   // Computer logic based on difficulty
@@ -122,20 +121,17 @@ const GameScreen: React.FC = () => {
 
   // Handle player move
   const handlePlayerMove = (country: string) => {
-    if (!playerTurn) return; // Ignore move if not player's turn
+    if (!gameState.isPlayerTurn || computerThinking) return; // Ignore move if not player's turn
     
     const moveSuccess = makePlayerMove(country);
     
     if (moveSuccess) {
-      setPlayerTurn(false);
-      
       if (!gameState.isGameOver) {
         // Add delay for computer move to feel more natural
         setComputerThinking(true);
         setTimeout(() => {
           const computerCountry = calculateComputerMove();
           makeComputerMove(computerCountry);
-          setPlayerTurn(true);
           setComputerThinking(false);
           
           // Show toast notification for computer's move
@@ -151,18 +147,22 @@ const GameScreen: React.FC = () => {
     }
   };
 
-  // Ensure the computer always makes a move after the first player move
+  // Ensure the computer makes the first move after player's first move
   useEffect(() => {
     // Check if it's the first move (player has made a move but computer hasn't)
-    if (gameState.playerHistory.length === 1 && gameState.computerHistory.length === 0 && !computerThinking && !gameState.isGameOver) {
-      // Make computer's first move
-      setPlayerTurn(false);
+    // and it's the computer's turn (isPlayerTurn is false)
+    if (
+      gameState.playerHistory.length === 1 && 
+      gameState.computerHistory.length === 0 && 
+      !gameState.isPlayerTurn && 
+      !computerThinking && 
+      !gameState.isGameOver
+    ) {
       setComputerThinking(true);
       
       setTimeout(() => {
         const computerCountry = calculateComputerMove();
         makeComputerMove(computerCountry);
-        setPlayerTurn(true);
         setComputerThinking(false);
         
         // Show toast notification for computer's move
@@ -175,7 +175,7 @@ const GameScreen: React.FC = () => {
         }
       }, 1000);
     }
-  }, [gameState.playerHistory, gameState.computerHistory, computerThinking]);
+  }, [gameState.playerHistory, gameState.computerHistory, gameState.isPlayerTurn, computerThinking, gameState.isGameOver]);
 
   // Show notification for first move
   useEffect(() => {

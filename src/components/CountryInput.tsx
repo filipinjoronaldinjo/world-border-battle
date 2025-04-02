@@ -19,9 +19,13 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const availableCountries = gameState.currentCountry 
+  // Get only the countries that can be played (border with current country)
+  const validMoveCountries = gameState.currentCountry 
     ? getAvailableCountries(gameState.currentCountry) 
     : Object.keys(countryData);
+
+  // All country names in the dataset for autocomplete
+  const allCountries = Object.keys(countryData);
 
   useEffect(() => {
     // Fokusiranje na input polje kada se komponenta montira
@@ -63,17 +67,27 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
   const findSuggestions = (text: string): string[] => {
     const normalizedText = text.toLocaleLowerCase('sr-Latn');
     
-    return availableCountries.filter(country => 
+    // First, find all countries that match the text regardless of whether they border the current country
+    return allCountries.filter(country => 
       country.toLocaleLowerCase('sr-Latn').includes(normalizedText)
     ).sort((a, b) => {
-      // Prvo prikazujemo one koje počinju sa unetim tekstom
+      // First show countries that are valid moves (border current country and not used)
+      const aIsValidMove = validMoveCountries.includes(a);
+      const bIsValidMove = validMoveCountries.includes(b);
+      
+      if (aIsValidMove && !bIsValidMove) return -1;
+      if (!aIsValidMove && bIsValidMove) return 1;
+      
+      // Then prioritize countries that start with the input text
       const aStartsWith = a.toLocaleLowerCase('sr-Latn').startsWith(normalizedText);
       const bStartsWith = b.toLocaleLowerCase('sr-Latn').startsWith(normalizedText);
       
       if (aStartsWith && !bStartsWith) return -1;
       if (!aStartsWith && bStartsWith) return 1;
+      
+      // Finally, sort alphabetically
       return a.localeCompare(b, 'sr-Latn');
-    }).slice(0, 8); // Ograničimo na 8 predloga
+    }).slice(0, 10); // Ograničimo na 10 predloga
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -99,7 +113,8 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
   };
 
   const submitCountry = (country: string) => {
-    if (!availableCountries.includes(country)) {
+    // Check if the country is a valid move (borders the current country)
+    if (!validMoveCountries.includes(country)) {
       toast({
         title: "Neispravan izbor",
         description: gameState.currentCountry 
@@ -118,10 +133,18 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input && availableCountries.includes(input)) {
+    if (input && validMoveCountries.includes(input)) {
       submitCountry(input);
-    } else if (suggestions.length > 0) {
+    } else if (suggestions.length > 0 && validMoveCountries.includes(suggestions[selectedIndex])) {
       submitCountry(suggestions[selectedIndex]);
+    } else if (input) {
+      toast({
+        title: "Neispravan izbor",
+        description: gameState.currentCountry 
+          ? `${input} se ne graniči sa ${gameState.currentCountry}`
+          : `${input} nije važeća država`,
+        variant: "destructive"
+      });
     }
   };
 
@@ -145,14 +168,14 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
             ? `Nađi državu koja se graniči sa ${gameState.currentCountry}...` 
             : "Unesite ime države..."}
           className="py-6 text-lg"
-          disabled={gameState.isGameOver}
+          disabled={gameState.isGameOver || !gameState.isPlayerTurn}
           autoComplete="off"
         />
         
         <Button 
           type="submit"
           className="absolute right-1 top-1 bottom-1"
-          disabled={!input || (!availableCountries.includes(input) && suggestions.length === 0)}
+          disabled={!input || !validMoveCountries.includes(input) || !gameState.isPlayerTurn}
         >
           Igraj
         </Button>
@@ -169,11 +192,19 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
                 key={suggestion}
                 className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
                   index === selectedIndex ? 'bg-blue-50 text-primary' : ''
+                } ${
+                  validMoveCountries.includes(suggestion) ? '' : 'text-gray-400'
                 }`}
-                onClick={() => selectSuggestion(suggestion)}
+                onClick={() => validMoveCountries.includes(suggestion) && selectSuggestion(suggestion)}
                 onMouseEnter={() => setSelectedIndex(index)}
               >
                 {suggestion}
+                {!validMoveCountries.includes(suggestion) && gameState.currentCountry && (
+                  <span className="ml-2 text-xs text-gray-400">(ne graniči se)</span>
+                )}
+                {gameState.usedCountries.includes(suggestion) && (
+                  <span className="ml-2 text-xs text-gray-400">(već iskorišćeno)</span>
+                )}
               </li>
             ))}
           </ul>
