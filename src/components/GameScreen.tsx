@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/GameContext';
 import WorldMap from './WorldMap';
@@ -125,57 +124,25 @@ const GameScreen: React.FC = () => {
     
     const moveSuccess = makePlayerMove(country);
     
-    if (moveSuccess) {
-      if (!gameState.isGameOver) {
-        // Add delay for computer move to feel more natural
-        setComputerThinking(true);
-        setTimeout(() => {
-          const computerCountry = calculateComputerMove();
-          makeComputerMove(computerCountry);
-          setComputerThinking(false);
-          
-          // Show toast notification for computer's move
-          if (computerCountry) {
-            toast({
-              title: "Računar je odigrao",
-              description: `Računar je izabrao državu: ${computerCountry}`,
-              duration: 3000
-            });
-          }
-        }, 1000); // 1 second delay for computer move
-      }
-    }
-  };
-
-  // Ensure the computer makes the first move after player's first move
-  useEffect(() => {
-    // Check if it's the first move (player has made a move but computer hasn't)
-    // and it's the computer's turn (isPlayerTurn is false)
-    if (
-      gameState.playerHistory.length === 1 && 
-      gameState.computerHistory.length === 0 && 
-      !gameState.isPlayerTurn && 
-      !computerThinking && 
-      !gameState.isGameOver
-    ) {
+    if (moveSuccess && !gameState.isGameOver && !gameState.isPlayerTurn) {
+      // Add delay for computer move to feel more natural
       setComputerThinking(true);
-      
       setTimeout(() => {
         const computerCountry = calculateComputerMove();
-        makeComputerMove(computerCountry);
-        setComputerThinking(false);
-        
-        // Show toast notification for computer's move
         if (computerCountry) {
+          makeComputerMove(computerCountry);
+          
+          // Show toast notification for computer's move
           toast({
             title: "Računar je odigrao",
             description: `Računar je izabrao državu: ${computerCountry}`,
             duration: 3000
           });
         }
-      }, 1000);
+        setComputerThinking(false);
+      }, 1000); // 1 second delay for computer move
     }
-  }, [gameState.playerHistory, gameState.computerHistory, gameState.isPlayerTurn, computerThinking, gameState.isGameOver]);
+  };
 
   // Show notification for first move
   useEffect(() => {

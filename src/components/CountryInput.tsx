@@ -67,27 +67,20 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
   const findSuggestions = (text: string): string[] => {
     const normalizedText = text.toLocaleLowerCase('sr-Latn');
     
-    // First, find all countries that match the text regardless of whether they border the current country
+    // Find all countries that match the text regardless of whether they border the current country
     return allCountries.filter(country => 
       country.toLocaleLowerCase('sr-Latn').includes(normalizedText)
     ).sort((a, b) => {
-      // First show countries that are valid moves (border current country and not used)
-      const aIsValidMove = validMoveCountries.includes(a);
-      const bIsValidMove = validMoveCountries.includes(b);
-      
-      if (aIsValidMove && !bIsValidMove) return -1;
-      if (!aIsValidMove && bIsValidMove) return 1;
-      
-      // Then prioritize countries that start with the input text
+      // Prioritize countries that start with the input text
       const aStartsWith = a.toLocaleLowerCase('sr-Latn').startsWith(normalizedText);
       const bStartsWith = b.toLocaleLowerCase('sr-Latn').startsWith(normalizedText);
       
       if (aStartsWith && !bStartsWith) return -1;
       if (!aStartsWith && bStartsWith) return 1;
       
-      // Finally, sort alphabetically
+      // Then sort alphabetically
       return a.localeCompare(b, 'sr-Latn');
-    }).slice(0, 10); // Ograničimo na 10 predloga
+    }).slice(0, 10); // Limit to 10 suggestions
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -175,7 +168,7 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
         <Button 
           type="submit"
           className="absolute right-1 top-1 bottom-1"
-          disabled={!input || !validMoveCountries.includes(input) || !gameState.isPlayerTurn}
+          disabled={!input || !gameState.isPlayerTurn}
         >
           Igraj
         </Button>
@@ -192,16 +185,11 @@ const CountryInput: React.FC<CountryInputProps> = ({ onSubmit }) => {
                 key={suggestion}
                 className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
                   index === selectedIndex ? 'bg-blue-50 text-primary' : ''
-                } ${
-                  validMoveCountries.includes(suggestion) ? '' : 'text-gray-400'
                 }`}
-                onClick={() => validMoveCountries.includes(suggestion) && selectSuggestion(suggestion)}
+                onClick={() => selectSuggestion(suggestion)}
                 onMouseEnter={() => setSelectedIndex(index)}
               >
                 {suggestion}
-                {!validMoveCountries.includes(suggestion) && gameState.currentCountry && (
-                  <span className="ml-2 text-xs text-gray-400">(ne graniči se)</span>
-                )}
                 {gameState.usedCountries.includes(suggestion) && (
                   <span className="ml-2 text-xs text-gray-400">(već iskorišćeno)</span>
                 )}

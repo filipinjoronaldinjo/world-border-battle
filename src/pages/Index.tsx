@@ -13,22 +13,20 @@ const GameContainer: React.FC = () => {
   useEffect(() => {
     const preloadMapAssets = async () => {
       try {
-        // Preload the uploaded map image
-        const imgPreloader = new Image();
-        imgPreloader.src = '/lovable-uploads/7376856b-6660-45bd-abd0-5a2cddaf5f14.png';
-        imgPreloader.onload = () => {
-          console.log("Map image preloaded successfully");
-        };
-        imgPreloader.onerror = (error) => {
-          console.error("Failed to preload map image:", error);
-          toast({
-            title: "Warning",
-            description: "Map assets failed to preload. There might be display issues.",
-            variant: "destructive"
-          });
-        };
+        // Preload the SVG map file
+        const response = await fetch('/assets/world-map.svg');
+        if (!response.ok) {
+          throw new Error(`Failed to preload map: ${response.status}`);
+        }
+        await response.text();
+        console.log("Map image preloaded successfully");
       } catch (error) {
         console.error("Error in preloading assets:", error);
+        toast({
+          title: "Warning",
+          description: "Map assets failed to preload. There might be display issues.",
+          variant: "destructive"
+        });
       }
     };
     
